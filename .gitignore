@@ -2,3 +2,5 @@
 .idea
 resources
 snowboy
+__pycache__
+*.pyc

@@ -13,8 +13,10 @@ class CommandRecognition(Process):
     def command_handler(self, local_services, cloud_services):
         confidence_threshold = 0.2
         # Listen audio data.
-        audio_threshold = 1000
-        speech_data = self.voice_record.get_speech_data(audio_threshold, 1)
+        speech_data = self.voice_record.get_speech_data(num_phrases=1)
+        if not speech_data:
+            # Nothing to do, nothing was caught.
+            return
         # Concatenate all phrases.
         content = b''.join(speech_data)
 
@@ -61,10 +63,13 @@ class CommandRecognition(Process):
 
         self.detector = snowboydecoder.HotwordDetector(model, sensitivity=0.6)
 
-        self.voice_record = VoiceRecord(audio_format=self.detector.stream_in._format,
+        self.voice_record = VoiceRecord(threshold=0,
+                                        audio_format=self.detector.stream_in._format,
                                         channels=self.detector.stream_in._channels,
                                         rate=self.detector.stream_in._rate,
                                         frames_per_buffer=self.detector.stream_in._frames_per_buffer)
+        self.voice_record.set_vad_type('wavelet')
+        self.voice_record.threshold = self.voice_record.measure_background_noise(num_samples=20)
 
         gcsr = GoogleCloudSpeechAPI(self.voice_record.ENCODING, self.voice_record._rate, 'ru-RU')
         ps_rec = MyPocketSphinx(confidence_strategy='default', verbose=False)

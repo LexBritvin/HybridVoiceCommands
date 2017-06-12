@@ -14,6 +14,10 @@ class VoiceRecord:
     # recording finishes and the file is delivered.
     SILENCE_LIMIT = 1
 
+    # Silence stop limit in seconds.
+    # The max amount of silence seconds waiting.
+    SILENCE_STOP_LIMIT = 5
+
     # Previous audio (in seconds) to prepend. When noise
     # is detected, how much of previously recorded audio is
     # prepended. This helps to prevent chopping the beginning
@@ -23,8 +27,9 @@ class VoiceRecord:
     def __init__(self, threshold, audio_format, channels, rate, frames_per_buffer):
         self.audio = pyaudio.PyAudio()
         self.stream_in = None
-        self.threshold = threshold
+        self.threshold = threshold if threshold else 0
         self.vad_type = 'default'
+        self.verbose = True
         self._audio_format = audio_format
         self._channels = channels
         self._rate = rate
@@ -50,12 +55,12 @@ class VoiceRecord:
         """
         stream = self.stream_open()
 
-        print("Getting intensity values from mic.")
+        self.log("Getting intensity values from mic.")
         values = [self.get_vad_estimate(stream.read(self._chunk)) for _ in range(num_samples)]
         values = sorted(values, reverse=True)
         r = sum(values[:int(num_samples * 0.2)]) / int(num_samples * 0.2)
-        print(" Finished ")
-        print(" Average audio intensity is ", r)
+        self.log(" Finished ")
+        self.log(" Average audio intensity is ", r)
         stream.close()
         return r
 
@@ -69,10 +74,13 @@ class VoiceRecord:
 
         # Open stream
         stream = self.stream_open()
+        if threshold is None:
+            threshold = self.threshold
 
-        print("* Listening mic. ")
+        self.log("* Listening mic. ")
         recorded_phrase = []
         rel = int(self._rate / self._chunk)
+        silence_stop_len = int(self.SILENCE_STOP_LIMIT * rel)
         slid_win_maxlen = int(self.SILENCE_LIMIT * rel)
         prev_audio_maxlen = int(self.PREV_AUDIO * rel)
         slid_win = deque(maxlen=slid_win_maxlen)
@@ -81,35 +89,42 @@ class VoiceRecord:
         started = False
         n = num_phrases
         speech_data = []
-
+        recorded_chunks = 0
         while num_phrases == -1 or n > 0:
             # Current chunk of audio data.
             cur_data = stream.read(self._chunk)
+            recorded_chunks += 1
             slid_win.append(self.get_vad_estimate(cur_data))
-
-            if sum([x > threshold for x in slid_win]) > 0:
+            estimate = sum([x > threshold for x in slid_win])
+            if estimate > 0:
                 if not started:
-                    print("Starting record of phrase")
+                    self.log("Starting record of phrase")
                     started = True
+                    recorded_chunks = 1
                 # TODO: Prevent recording longer than X sec.
                 recorded_phrase.append(cur_data)
             elif started is True:
-                print("Finished")
+                self.log("Finished")
                 # The limit was reached, finish capture and deliver.
                 speech_data.append(b''.join(list(prev_audio) + recorded_phrase))
-                # Reset all
+                # Reset all.
                 started = False
+                recorded_chunks = 0
                 slid_win = deque(maxlen=slid_win_maxlen)
                 prev_audio = deque(maxlen=prev_audio_maxlen)
                 recorded_phrase = []
                 n -= 1
                 if n > 0 or n == -1:
-                    print("Listening ...")
+                    self.log("Listening ...")
             else:
-                # TODO: Add exit from loop on long silence.
-                prev_audio.append(cur_data)
+                # Exit loop on long silence.
+                if recorded_chunks > silence_stop_len:
+                    self.log("Stop on long silence")
+                    break
+                else:
+                    prev_audio.append(cur_data)
 
-        print("* Done recording")
+        self.log("* Done recording")
         stream.close()
 
         return speech_data
@@ -224,3 +239,7 @@ class VoiceRecord:
     def bytestring_to_numpy_array(self, data):
         dtype = self.get_numpy_type_for_audio_format(self._audio_format)
         return numpy.fromstring(data, dtype=dtype)
+
+    def log(self, *args):
+        if self.verbose:
+            print(*args)
