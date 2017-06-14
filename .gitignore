@@ -1,6 +1,7 @@
 .DS_Store
-.idea
-resources
-snowboy
-__pycache__
+.idea/
+resources/
+snowboy_python/
+snowboy_python3/
+__pycache__/
 *.pyc

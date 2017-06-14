@@ -60,7 +60,7 @@ class VoiceRecord:
         values = sorted(values, reverse=True)
         r = sum(values[:int(num_samples * 0.2)]) / int(num_samples * 0.2)
         self.log(" Finished ")
-        self.log(" Average audio intensity is ", r)
+        self.log(" Average audio intensity is ", str(r))
         stream.close()
         return r
 
@@ -242,4 +242,4 @@ class VoiceRecord:
 
     def log(self, *args):
         if self.verbose:
-            print(*args)
+            print(' '.join(args))

@@ -1,7 +1,11 @@
 import sys
-
 from CommandRecognition import CommandRecognition
-from PyQt5 import QtCore
+
+if sys.version_info > (3, 0):
+    from PyQt5 import QtCore
+else:
+    from PyQt4 import QtCore
+
 from multiprocessing import Pipe
 from threading import Thread
 
