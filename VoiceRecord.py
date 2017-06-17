@@ -1,9 +1,9 @@
 import pyaudio
-import audioop
 from collections import deque
-import math
-import pywt
 import numpy
+
+import SimpleVAD
+import WaveletVAD
 
 
 class VoiceRecord:
@@ -28,7 +28,7 @@ class VoiceRecord:
         self.audio = pyaudio.PyAudio()
         self.stream_in = None
         self.threshold = threshold if threshold else 0
-        self.vad_type = 'default'
+        self.vad = None
         self.verbose = True
         self._audio_format = audio_format
         self._channels = channels
@@ -95,7 +95,7 @@ class VoiceRecord:
             cur_data = stream.read(self._chunk)
             recorded_chunks += 1
             slid_win.append(self.get_vad_estimate(cur_data))
-            estimate = sum([x > threshold for x in slid_win])
+            estimate = sum([x > threshold for x in slid_win]) if self.vad else 1
             if estimate > 0:
                 if not started:
                     self.log("Starting record of phrase")
@@ -129,99 +129,28 @@ class VoiceRecord:
 
         return speech_data
 
-    def set_vad_type(self, vad_type):
-        known_types = ['default', 'wavelet']
-        if vad_type in known_types:
-            self.vad_type = vad_type
+    def set_vad(self, vad_type):
+        if vad_type == 'simple':
+            self.vad = SimpleVAD.SimpleVAD()
+        elif vad_type == 'wavelet':
+            self.vad = WaveletVAD.WaveletVAD()
         else:
             raise ValueError('Unknown VAD type')
 
     def get_vad_estimate(self, data):
-        if self.vad_type == 'default':
-            return self.default_vad_estimate(data)
-        elif self.vad_type == 'wavelet':
+        if self.vad is not None:
             numpydata = self.bytestring_to_numpy_array(data)
-            return self.wavelet_vad_estimate(numpydata)
+            self.vad.estimate(numpydata)
 
         return 0
 
-    def default_vad_estimate(self, data):
-        return math.sqrt(abs(audioop.avg(data, 4)))
+    def log(self, *args):
+        if self.verbose:
+            print(' '.join(args))
 
-    def wavelet_vad_estimate(self, data):
-        wavelet = 'db4'
-        level = 3
-        subbands = []
-
-        data_to_process = data
-        while len(subbands) < level:
-            cA, cD = pywt.dwt(data_to_process, wavelet)
-            subbands.append(cD)
-            data_to_process = cA
-        # Add the last appropriated scale A.
-        subbands.append(data_to_process)
-
-        t = [self.teo(s) for s in subbands]
-        sae = numpy.float64()
-        for ts in t:
-            if len(ts):
-                acf = self.acf(ts)
-                sae += self.mdsacf(acf)
-
-        return sae
-
-    def teo(self, x):
-        """ Applies Teager Kaiser energy operator to dataset. """
-        # TEO(X[n]) = X[n]^2 - X[n+1] * X[n-1]
-        return numpy.multiply(x[1:-1], x[1:-1]) - numpy.multiply(x[2:], x[0:-2])
-
-    def mean_operator(self, x):
-        assert type(x) is numpy.ndarray
-        return numpy.absolute(x).mean()
-
-    def acf(self, x):
-        """ Auto-Correlation function. """
-        return numpy.correlate(x, x, mode='full')[-len(x):]
-
-    def mdsacf(self, acf, m=3):
-        """ 
-        Mean-Delta Subband Auto-Correlation Function (MDSACF)
-    
-        Parameters
-        ----------
-        acf : array_like
-            Auto-Correlation function data.
-        m : number
-            M-sample neighborhood (lag)
-    
-        Returns
-        -------
-        mdsacf : 
-            ndarray
-            Returns MDSACF.
-        """
-        assert type(acf) is numpy.ndarray
-        n = len(acf)
-        # Precalculate R0 and squared sum for M range.
-        R0 = acf[0]
-        # Arrange M for further calculations.
-        mvals = numpy.arange(-m, m + 1, 1, dtype=numpy.float64)
-
-        # Calculate Delta Subband Auto-Correlation Function (DSACF).
-        Rm = numpy.zeros(n, dtype=numpy.float64)
-        for k, val in enumerate(Rm):
-            # Generate ACF(k+m) vector.
-            Rk = mvals.copy()
-            for ri, rm in enumerate(Rk):
-                i = int(k + rm)
-                Rk[ri] = acf[i] if 0 <= i < n else numpy.float64(0.0)
-            # Generate DSACF vector.
-            Rm[k] = (mvals.copy() * Rk / R0).sum()
-        # Calculate DSACF.
-        Rm /= numpy.square(mvals).sum()
-
-        # Calculate Mean-Delta over Delta Subband Auto-Correlation Function
-        return self.mean_operator(Rm)
+    def bytestring_to_numpy_array(self, data):
+        dtype = self.get_numpy_type_for_audio_format(self._audio_format)
+        return numpy.fromstring(data, dtype=dtype)
 
     def get_numpy_type_for_audio_format(self, audio_format):
         known_formats = {
@@ -235,11 +164,3 @@ class VoiceRecord:
             return known_formats[audio_format]
 
         raise ValueError('Unhandled audio format', audio_format)
-
-    def bytestring_to_numpy_array(self, data):
-        dtype = self.get_numpy_type_for_audio_format(self._audio_format)
-        return numpy.fromstring(data, dtype=dtype)
-
-    def log(self, *args):
-        if self.verbose:
-            print(' '.join(args))
