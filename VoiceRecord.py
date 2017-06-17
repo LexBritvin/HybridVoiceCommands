@@ -2,9 +2,6 @@ import pyaudio
 from collections import deque
 import numpy
 
-import SimpleVAD
-import WaveletVAD
-
 
 class VoiceRecord:
     ENCODING = 'LINEAR16'
@@ -37,7 +34,7 @@ class VoiceRecord:
 
     def stream_open(self):
         """
-        TODO: Description
+        Opens audio stream.
         :return:
         """
         self.stream_in = self.audio.open(format=self._audio_format,
@@ -95,7 +92,7 @@ class VoiceRecord:
             cur_data = stream.read(self._chunk)
             recorded_chunks += 1
             slid_win.append(self.get_vad_estimate(cur_data))
-            estimate = sum([x > threshold for x in slid_win]) if self.vad else 1
+            estimate = sum([x >= threshold for x in slid_win])
             if estimate > 0:
                 if not started:
                     self.log("Starting record of phrase")
@@ -129,30 +126,32 @@ class VoiceRecord:
 
         return speech_data
 
-    def set_vad(self, vad_type):
-        if vad_type == 'simple':
-            self.vad = SimpleVAD.SimpleVAD()
-        elif vad_type == 'wavelet':
-            self.vad = WaveletVAD.WaveletVAD()
-        else:
-            raise ValueError('Unknown VAD type')
-
     def get_vad_estimate(self, data):
-        if self.vad is not None:
+        if self.vad:
             numpydata = self.bytestring_to_numpy_array(data)
-            self.vad.estimate(numpydata)
+            return self.vad.estimate(numpydata)
 
-        return 0
+        return 1
 
     def log(self, *args):
         if self.verbose:
             print(' '.join(args))
 
     def bytestring_to_numpy_array(self, data):
+        """
+        Converts audio input byte string to numpy array.
+        :param data: audio byte string
+        :return: numpy representation
+        """
         dtype = self.get_numpy_type_for_audio_format(self._audio_format)
         return numpy.fromstring(data, dtype=dtype)
 
     def get_numpy_type_for_audio_format(self, audio_format):
+        """
+        Matches pyaudio format to numpy variable type.
+        :param audio_format: pyaudio audio format
+        :return: numpy format
+        """
         known_formats = {
             pyaudio.paUInt8: numpy.uint8,
             pyaudio.paInt8: numpy.int8,

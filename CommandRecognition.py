@@ -1,6 +1,9 @@
 import multiprocessing
 import sys
 from multiprocessing import Process
+
+import SimpleVAD
+import WaveletVAD
 from GoogleCloudSpeechAPI import GoogleCloudSpeechAPI
 from MyPocketSphinx import MyPocketSphinx
 from VoiceRecord import VoiceRecord
@@ -72,7 +75,8 @@ class CommandRecognition(Process):
                                         channels=self.detector.stream_in._channels,
                                         rate=self.detector.stream_in._rate,
                                         frames_per_buffer=self.detector.stream_in._frames_per_buffer)
-        self.voice_record.set_vad_type('wavelet')
+        self.voice_record.vad = SimpleVAD.SimpleVAD()
+        # self.voice_record.vad = WaveletVAD.WaveletVAD()
         self.voice_record.threshold = self.voice_record.measure_background_noise(num_samples=20)
 
         gcsr = GoogleCloudSpeechAPI(self.voice_record.ENCODING, self.voice_record._rate, 'ru-RU')
