@@ -1,7 +1,7 @@
 .DS_Store
 .idea/
-resources/
-snowboy_python/
-snowboy_python3/
+/resources/
+snowboy/snowboydetect.py
+snowboy/_snowboydetect.so
 __pycache__/
 *.pyc
