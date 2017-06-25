@@ -123,6 +123,7 @@ If there is an error on `pip install -r requirements.txt`, try to follow the ste
 Initialize the SDK. You'll need Google credentials and configured project.
 ```
 $ gcloud init
+$ export GOOGLE_APPLICATION_CREDENTIALS=/path/to/service_account.json
 ```
 ### Qt
 
