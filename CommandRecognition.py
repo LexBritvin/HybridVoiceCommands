@@ -67,7 +67,7 @@ class CommandRecognition(Process):
         self.detector = snowboydecoder.HotwordDetector(model, sensitivity=0.6)
 
         self.voice_record = VoiceRecord(threshold=0,
-                                        stream_config=self.get_stream_config())
+                                        audio_stream_config=self.get_stream_config())
         # self.voice_record.vad = SimpleVAD.SimpleVAD()
         self.voice_record.vad = WaveletVAD.WaveletVAD()
         self.voice_record.threshold = self.voice_record.measure_background_noise(num_samples=20)

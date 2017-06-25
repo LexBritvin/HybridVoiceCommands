@@ -154,7 +154,7 @@ $ python example.non_qt.py
 $ python example.pyqt.py
 ```
 
-Currently there are issues with ALSA on Raspberry Pi. Try installing pulseaudio:
+Currently there are issues with ALSA on Raspberry Pi. Try installing `pulseaudio`:
 ```
 $ sudo apt-get install pulseaudio
 ```
