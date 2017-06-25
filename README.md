@@ -20,7 +20,7 @@ Currently library works with:
 
 ## Raspberry Pi
 
-The following is not required for desktops.
+_The following is not required for desktops._
 
 Since Raspberry Pi doesn't have an internal microphone, an external USB audio card is required.
 
@@ -28,7 +28,7 @@ To exclude possible issues, update software:
 ```
 $ sudo apt-get update && sudo apt-get upgrade && sudo apt-get install rpi-update && sudo rpi-update
 ```
-0. Audio input/output should be configured to USB device.
+Audio input/output should be configured to USB device.
 
 Check available devices
 ```
@@ -47,8 +47,6 @@ card 1: Device [USB Audio Device], device 0: USB Audio [USB Audio]
   Subdevices: 1/1
   Subdevice #0: subdevice #0
 ```
-We need card 1 name `Device`.
-
 Create a new config file at ` ~/.asoundrc` and fill with content:
 ```
 pcm.!default {
