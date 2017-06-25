@@ -140,12 +140,22 @@ $ pip install numpy
 $ pip install PyWavelets
 ```
 
+**DO NOT FORGET TO PUT MODELS IN RESOURCES!**
+
+# Running examples
+
+There are 2 examples:
+1. Non-Qt based on threads
+```
+$ python example.non_qt.py
+```
+2. Qt, with signals and slots:
+```
+$ python example.pyqt.py
+```
+
 Currently there are issues with ALSA on Raspberry Pi. Try installing pulseaudio:
 ```
 $ sudo apt-get install pulseaudio
 ```
 ALSA will possibly throw errors, but recording will work.
-
-**DO NOT FORGET TO PUT MODELS IN RESOURCES!**
-
-# Running examples
