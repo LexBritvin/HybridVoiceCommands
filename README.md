@@ -71,7 +71,7 @@ $ aplay /usr/share/sounds/alsa/Front_Left.wav
 ### Snowboy
 For Snowboy install requirements:
 ```
-$ sudo apt-get install swig3.0 python-pyaudio sox python-pip python-dev libatlas-base-dev
+$ sudo apt-get install swig python-pyaudio sox python-pip python-dev libatlas-base-dev
 $ pip install pyaudio
 ```
 
@@ -109,9 +109,18 @@ You will need to put PocketSphinx model and dictionary to `resources/pocketsphin
 
 For Google Cloud Speech API.
 ```
+$ export CLOUD_SDK_REPO="cloud-sdk-$(lsb_release -c -s)"
+$ echo "deb http://packages.cloud.google.com/apt $CLOUD_SDK_REPO main" | sudo tee -a /etc/apt/sources.list.d/google-cloud-sdk.list
+$ curl https://packages.cloud.google.com/apt/doc/apt-key.gpg | sudo apt-key add -
+$ sudo apt-get update && sudo apt-get install google-cloud-sdk portaudio19-dev
+$ gcloud auth application-default login
 $ pip install -r requirements.txt
 ```
 
+Initialize the SDK. You'll need Google credentials and configured project.
+```
+$ gcloud init
+```
 ### Qt
 
 Qt is required only for Qt Signals and Slots example.
