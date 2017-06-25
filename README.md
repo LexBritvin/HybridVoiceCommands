@@ -68,10 +68,18 @@ $ aplay /usr/share/sounds/alsa/Front_Left.wav
 
 ## Requirements (for Ubuntu, Raspbian)
 
+### PIP
+It's better to install `pip` from source. apt-get installs a much older version of pip which can lead to problems.
+```
+$ sudo curl https://bootstrap.pypa.io/get-pip.py | sudo python
+$ sudo pip install --upgrade setuptools
+```
+
 ### Snowboy
 For Snowboy install requirements:
 ```
-$ sudo apt-get install swig python-pyaudio sox python-pip python-dev libatlas-base-dev
+$ sudo apt-get install swig python-pyaudio sox python-dev libatlas-base-dev
+
 $ pip install pyaudio
 ```
 
@@ -100,7 +108,7 @@ You will also need to add Snowboy model file `snowboy.umdl` to `resources/snowbo
 
 For PocketSphinx:
 ```
-sudo apt-get install -y python python-dev python-pip build-essential swig git libpulse-dev
+sudo apt-get install -y python python-dev build-essential swig git libpulse-dev
 sudo pip install pocketsphinx
 ```
 You will need to put PocketSphinx model and dictionary to `resources/pocketsphinx/model`.
@@ -117,6 +125,8 @@ $ gcloud auth application-default login
 $ pip install -r requirements.txt
 ```
 
+If there is an error on `pip install -r requirements.txt`, try to follow the steps from chapter **Project requirements**.
+
 Initialize the SDK. You'll need Google credentials and configured project.
 ```
 $ gcloud init
@@ -126,6 +136,15 @@ $ gcloud init
 Qt is required only for Qt Signals and Slots example.
 ```
 $ sudo apt-get install python-qt4
+```
+
+### Project requirements
+
+VAD uses `PyWavelets` to compute its estimates.
+To install `PyWavelets` it's better to install numpy first to avoid install errors.
+```
+$ pip install numpy
+$ pip install PyWavelets
 ```
 
 # Running examples

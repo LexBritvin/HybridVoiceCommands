@@ -1,5 +1,4 @@
 import multiprocessing
-import sys
 from multiprocessing import Process
 
 import SimpleVAD
@@ -8,10 +7,7 @@ from GoogleCloudSpeechAPI import GoogleCloudSpeechAPI
 from MyPocketSphinx import MyPocketSphinx
 from VoiceRecord import VoiceRecord
 
-if sys.version_info > (3, 0):
-    from snowboy_python3 import snowboydecoder
-else:
-    from snowboy_python import snowboydecoder
+from snowboy import snowboydecoder
 
 
 class CommandRecognition(Process):
