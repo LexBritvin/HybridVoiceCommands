@@ -67,10 +67,7 @@ class CommandRecognition(Process):
         self.detector = snowboydecoder.HotwordDetector(model, sensitivity=0.6)
 
         self.voice_record = VoiceRecord(threshold=0,
-                                        audio_format=self.detector.stream_in._format,
-                                        channels=self.detector.stream_in._channels,
-                                        rate=self.detector.stream_in._rate,
-                                        frames_per_buffer=self.detector.stream_in._frames_per_buffer)
+                                        stream_config=self.get_stream_config())
         # self.voice_record.vad = SimpleVAD.SimpleVAD()
         self.voice_record.vad = WaveletVAD.WaveletVAD()
         self.voice_record.threshold = self.voice_record.measure_background_noise(num_samples=20)
@@ -98,3 +95,12 @@ class CommandRecognition(Process):
     def notify_result(self, result):
         print('Notifying parent process')
         self.transport.send(result)
+
+    def get_stream_config(self):
+        if self.detector.stream_in:
+            return {
+                'format': self.detector.stream_in._format,
+                'channels': self.detector.stream_in._channels,
+                'rate': self.detector.stream_in._rate,
+                'frames_per_buffer': self.detector.stream_in._frames_per_buffer
+            }

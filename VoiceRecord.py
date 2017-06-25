@@ -21,16 +21,17 @@ class VoiceRecord:
     # of the phrase.
     PREV_AUDIO = 0.5
 
-    def __init__(self, threshold, audio_format, channels, rate, frames_per_buffer):
+    def __init__(self, threshold, audio_stream_config):
         self.audio = pyaudio.PyAudio()
-        self.stream_in = None
         self.threshold = threshold if threshold else 0
+        self.stream_in = None
         self.vad = None
         self.verbose = True
-        self._audio_format = audio_format
-        self._channels = channels
-        self._rate = rate
-        self._chunk = frames_per_buffer  # CHUNKS of bytes to read each time from mic
+        # Set format configs for PyAudio audio stream.
+        self._audio_format = audio_stream_config['format']
+        self._channels = audio_stream_config['channels']
+        self._rate = audio_stream_config['rate']
+        self._chunk = audio_stream_config['frames_per_buffer']  # CHUNKS of bytes to read each time from mic
 
     def stream_open(self):
         """

@@ -39,14 +39,7 @@ The output should be something like:
 **** List of PLAYBACK Hardware Devices ****
 card 0: ALSA [bcm2835 ALSA], device 0: bcm2835 ALSA [bcm2835 ALSA]
   Subdevices: 8/8
-  Subdevice #0: subdevice #0
-  Subdevice #1: subdevice #1
-  Subdevice #2: subdevice #2
-  Subdevice #3: subdevice #3
-  Subdevice #4: subdevice #4
-  Subdevice #5: subdevice #5
-  Subdevice #6: subdevice #6
-  Subdevice #7: subdevice #7
+  ...
 card 0: ALSA [bcm2835 ALSA], device 1: bcm2835 ALSA [bcm2835 IEC958/HDMI]
   Subdevices: 1/1
   Subdevice #0: subdevice #0
@@ -146,5 +139,13 @@ To install `PyWavelets` it's better to install numpy first to avoid install erro
 $ pip install numpy
 $ pip install PyWavelets
 ```
+
+Currently there are issues with ALSA on Raspberry Pi. Try installing pulseaudio:
+```
+$ sudo apt-get install pulseaudio
+```
+ALSA will possibly throw errors, but recording will work.
+
+**DO NOT FORGET TO PUT MODELS IN RESOURCES!**
 
 # Running examples
