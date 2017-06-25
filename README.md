@@ -51,9 +51,20 @@ We need card 1 name `Device`.
 
 Create a new config file at ` ~/.asoundrc` and fill with content:
 ```
-pcm.!default plughw:Device
-ctl.!default plughw:Device
+pcm.!default {
+  type asym
+   playback.pcm {
+     type plug
+     slave.pcm "hw:1,0"
+   }
+   capture.pcm {
+     type plug
+     slave.pcm "hw:1,0"
+   }
+}
 ```
+Where in `hw:1,0`, `1` is a card number, and `0` is a device number in `card 1: Device [USB Audio Device], device 0: USB Audio [USB Audio]`
+
 And reboot the system with `sudo reboot`. If everything is configured correctly, an audio file should be played by a USB device:
 ```
 $ aplay /usr/share/sounds/alsa/Front_Left.wav
