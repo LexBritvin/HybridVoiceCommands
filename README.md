@@ -33,6 +33,7 @@ Audio input/output should be configured to USB device.
 Check available devices
 ```
 $ aplay -l
+$ arecord -l
 ```
 The output should be something like:
 ```
