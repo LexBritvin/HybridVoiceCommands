@@ -1,29 +1,42 @@
 #!/usr/bin/env python
 from io import BytesIO
-from os import path
 
 from pocketsphinx.pocketsphinx import *
-
-MODELDIR = "resources/pocketsphinx/model"
 
 
 class MyPocketSphinx:
     confidence_strategy = 'default'
 
-    def __init__(self, confidence_strategy='default', verbose=False):
-        # Create a decoder with certain model
-        config = Decoder.default_config()
-        config.set_string('-hmm', path.join(MODELDIR, 'ru-ru/cmu_ru-ru'))
-        config.set_string('-lm', path.join(MODELDIR, 'ru-ru/robot.lm.bin'))
-        config.set_string('-dict', path.join(MODELDIR, 'ru-ru/robot.dic'))
+    def __init__(self, config):
+        # Validate and prepare config.
+        self._validate_config(config)
 
-        # Disable logging
-        if not verbose:
-            config.set_string('-logfn', '/dev/null')
+        # Create a decoder with certain model.
+        ps_config = Decoder.default_config()
+
+        # Disable logging.
+        if not config['verbose']:
+            ps_config.set_string('-logfn', '/dev/null')
+
+        # Configure PocketSphinx decoder.
+        for name, value in config['decoder'].items():
+            ps_config.set_string(name, value)
 
         # Decode streaming data.
-        self.decoder = Decoder(config)
-        self.set_confidence_strategy(confidence_strategy)
+        self.decoder = Decoder(ps_config)
+        self.set_confidence_strategy(config['confidence_strategy'])
+        self.buffer_size = config['buffer_size']
+        self.config = config
+
+    @staticmethod
+    def _validate_config(config):
+        assert 'decoder' in config \
+               and '-hmm' in config['decoder'] \
+               and '-lm' in config['decoder'] \
+               and '-dict' in config['decoder']
+        config['buffer_size'] = int(config['buffer_size']) if 'buffer_size' in config else 1024
+        config['verbose'] = bool(config['verbose']) if 'verbose' in config else False
+        config['confidence_strategy'] = config['confidence_strategy'] if 'confidence_strategy' in config else 'default'
 
     def set_confidence_strategy(self, confidence_strategy_type):
         known_strategies = ['default', 'by_word']
@@ -37,7 +50,7 @@ class MyPocketSphinx:
         self.decoder.start_utt()
         stream = BytesIO(content)
         while True:
-            buf = stream.read(1024)
+            buf = stream.read(self.buffer_size)
             if buf:
                 self.decoder.process_raw(buf, False, False)
             else:

@@ -8,6 +8,7 @@ from google.cloud.proto.speech.v1beta1 import cloud_speech_pb2
 # Keep the request alive for this many seconds
 DEADLINE_SECS = 60
 SPEECH_SCOPE = 'https://www.googleapis.com/auth/cloud-platform'
+LANGUAGE_CODE = 'en-US'
 
 
 class GoogleCloudSpeechAPI:
@@ -15,10 +16,15 @@ class GoogleCloudSpeechAPI:
     TODO: Description.
     """
 
-    def __init__(self, encoding, sample_rate, language_code='en-US'):
-        self.encoding = encoding
-        self.sample_rate = sample_rate
-        self.language_code = language_code
+    def __init__(self, config):
+        self._validate_config(config)
+        self.encoding = config['audio']['encoding']
+        self.sample_rate = config['audio']['rate']
+        self.language_code = config['language_code']
+
+    @staticmethod
+    def _validate_config(config):
+        config['language_code'] = config['language_code'] if 'language_code' in config else LANGUAGE_CODE
 
     def make_channel(self, host, port):
         """Creates a secure channel with auth credentials from the environment."""
@@ -33,16 +39,15 @@ class GoogleCloudSpeechAPI:
             credentials, http_request, target)
 
     def transcribe(self, content):
-        return self.request_transcribe_sync(content, self.language_code)
+        return self.request_transcribe_sync(content)
 
-    def request_transcribe_sync(self, content, language_code='en-US'):
+    def request_transcribe_sync(self, content):
         """
         TODO: Description.
         :param content:
         :return:
         """
-        service = cloud_speech_pb2.SpeechStub(
-            self.make_channel('speech.googleapis.com', 443))
+        service = cloud_speech_pb2.SpeechStub(self.make_channel('speech.googleapis.com', 443))
 
         # The method and parameters can be inferred from the proto from which the
         # grpc client lib was generated. See:
@@ -55,7 +60,7 @@ class GoogleCloudSpeechAPI:
                 sample_rate=self.sample_rate,  # the rate in hertz
                 # See https://g.co/cloud/speech/docs/languages for a list of
                 # supported languages.
-                language_code=language_code,  # a BCP-47 language tag
+                language_code=self.language_code,  # a BCP-47 language tag
             ),
             audio=cloud_speech_pb2.RecognitionAudio(
                 content=content,

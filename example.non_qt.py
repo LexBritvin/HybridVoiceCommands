@@ -1,6 +1,4 @@
 from CommandRecognition import CommandRecognition
-from multiprocessing import Pipe
-
 
 
 class CommandHandler:
@@ -15,6 +13,8 @@ class CommandHandler:
             self.print_alternatives(alternatives)
             self.n += 1
 
+        print('Stopped dummy loop')
+
     def print_alternatives(self, alternatives):
         print("Handler alternatives: ")
         for alternative in alternatives:
@@ -22,18 +22,21 @@ class CommandHandler:
 
 
 def main():
-    # Create 2 ends of a pipe for communication.
-    mother_pipe, child_pipe = Pipe()
+    # Init recognition service.
+    recognition = CommandRecognition()
+    handler_transport = recognition.get_external_transport()
+    recognition.set_config_yaml('./recognition.config.yml')
 
     # Received commands handler.
-    handler = CommandHandler(mother_pipe)
+    handler = CommandHandler(handler_transport)
 
-    recognition = CommandRecognition(child_pipe)
+    # Start recognizing.
     recognition.start()
 
+    # Listen for transport to receive commands or transcription.
     handler.dummy_loop()
 
-    print('Stopped dummy loop')
+    # Shutdown recognition service.
     recognition.stop_process()
 
 

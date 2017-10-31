@@ -7,3 +7,4 @@ requests>=2.13.0
 google-auth>=0.8.0
 numpy
 PyWavelets
+PyYaml

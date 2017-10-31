@@ -1,13 +1,10 @@
 import sys
 from CommandRecognition import CommandRecognition
-
+from threading import Thread
 if sys.version_info > (3, 0):
     from PyQt5 import QtCore
 else:
     from PyQt4 import QtCore
-
-from multiprocessing import Pipe
-from threading import Thread
 
 
 class CommandHandler(QtCore.QObject):
@@ -51,11 +48,14 @@ class CommandReceiver(QtCore.QObject, Thread):
 
 
 def main():
-    # Create 2 ends of a pipe for communication.
-    mother_pipe, child_pipe = Pipe()
-    receiver = CommandReceiver(mother_pipe)
+    # Init recognition service.
+    recognition = CommandRecognition()
+    handler_transport = recognition.get_external_transport()
+    recognition.set_config_yaml('./recognition.config.yml')
+    # Received commands handler.
+    receiver = CommandReceiver(handler_transport)
 
-    recognition = CommandRecognition(child_pipe)
+    # Start recognizing.
     recognition.start()
 
     app = QtCore.QCoreApplication(sys.argv)
@@ -64,6 +64,8 @@ def main():
     app.exec_()
 
     print('Stopped waiting')
+
+    # Shutdown recognition service.
     recognition.stop_process()
 
 
