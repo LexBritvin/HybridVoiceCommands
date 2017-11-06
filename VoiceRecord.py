@@ -14,6 +14,7 @@ class VoiceRecord:
     # Silence stop limit in seconds.
     # The max amount of silence seconds waiting.
     SILENCE_STOP_LIMIT = 5
+    RECORDING_STOP_LIMIT = 59
 
     # Previous audio (in seconds) to prepend. When noise
     # is detected, how much of previously recorded audio is
@@ -51,15 +52,19 @@ class VoiceRecord:
         average intensities while you're talking and/or silent. The average
         is the avg of the 20% largest intensities recorded.
         """
+        self.log("Getting intensity values from mic.")
+
         stream = self.stream_open()
 
-        self.log("Getting intensity values from mic.")
         values = [self.get_vad_estimate(stream.read(self._chunk)) for _ in range(num_samples)]
         values = sorted(values, reverse=True)
         r = sum(values[:int(num_samples * 0.2)]) / int(num_samples * 0.2)
+
+        stream.close()
+
         self.log(" Finished ")
         self.log(" Average audio intensity is ", str(r))
-        stream.close()
+
         return r
 
     def get_speech_data(self, threshold=None, num_phrases=-1):
@@ -78,31 +83,47 @@ class VoiceRecord:
         self.log("* Listening mic. ")
         recorded_phrase = []
         rel = int(self._rate / self._chunk)
-        silence_stop_len = int(self.SILENCE_STOP_LIMIT * rel)
         slid_win_maxlen = int(self.SILENCE_LIMIT * rel)
         prev_audio_maxlen = int(self.PREV_AUDIO * rel)
         slid_win = deque(maxlen=slid_win_maxlen)
+
+        # Calculate recorded size in bytes for limits.
+        silence_stop_len = int(self.SILENCE_STOP_LIMIT * rel)
+        recording_stop_len = int(self.RECORDING_STOP_LIMIT * rel)
+
         # Prepend audio from 0.5 seconds before noise was detected
         prev_audio = deque(maxlen=prev_audio_maxlen)
+
+        # Set initial recording values.
         started = False
         n = num_phrases
         speech_data = []
         recorded_chunks = 0
+
         while num_phrases == -1 or n > 0:
             # Current chunk of audio data.
             cur_data = stream.read(self._chunk)
             recorded_chunks += 1
+            # TODO: Fix VAD estimation. It starts without voice.
             slid_win.append(self.get_vad_estimate(cur_data))
-            estimate = sum([x >= threshold for x in slid_win])
-            if estimate > 0:
+            threshold_pass_num = sum([x >= threshold for x in slid_win])
+
+            # Check if we are over the allowed limit.
+            recording_limit_passed = recorded_chunks > recording_stop_len
+
+            # If it's not some random peak, don't start recording.
+            if threshold_pass_num > 1 and not recording_limit_passed:
                 if not started:
-                    self.log("Starting record of phrase")
+                    self.log("Starting recording of a phrase")
                     started = True
-                    recorded_chunks = 1
-                # TODO: Prevent recording longer than X sec.
                 recorded_phrase.append(cur_data)
+                recorded_chunks = len(recorded_phrase)
+
             elif started is True:
                 self.log("Finished")
+                if recording_limit_passed:
+                    self.log("Stopped recording over {} seconds".format(self.RECORDING_STOP_LIMIT))
+
                 # The limit was reached, finish capture and deliver.
                 speech_data.append(b''.join(list(prev_audio) + recorded_phrase))
                 # Reset all.

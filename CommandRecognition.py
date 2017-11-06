@@ -59,9 +59,10 @@ class CommandRecognition(Process):
         model = self.config['hotword_detector']['model']
 
         print('Initializing...')
-
+        # TODO: Use config.
         self.detector = snowboydecoder.HotwordDetector(model, sensitivity=0.6)
 
+        # TODO: Use config.
         self.voice_record = VoiceRecord(threshold=0,
                                         audio_stream_config=self.get_stream_config())
         # self.voice_record.vad = SimpleVAD.SimpleVAD()
@@ -86,17 +87,36 @@ class CommandRecognition(Process):
         self.detector.terminate()
 
     def create_services(self):
+        if 'services' not in self.config:
+            return
+
+        for service_config in self.config['services']:
+            # Pass audio config also.
+            service_config['audio'] = self.config['audio']
+
+            # Init service class.
+            service = self.init_service(service_config)
+            is_local = 'local' in service_config and service_config['local']
+
+            if not service:
+                continue
+
+            if is_local:
+                self.local_services.append(service)
+            else:
+                self.cloud_services.append(service)
+
+    @staticmethod
+    def init_service(config):
         # TODO: Generalize creation.
-        if 'local_services' in self.config:
-            for service_config in self.config['local_services']:
-                service_config['audio'] = self.config['audio']
-                if service_config['type'] == 'pocketsphinx':
-                    self.local_services.append(MyPocketSphinx(service_config))
-        if 'cloud_services' in self.config:
-            for service_config in self.config['cloud_services']:
-                service_config['audio'] = self.config['audio']
-                if service_config['type'] == 'google':
-                    self.local_services.append(GoogleCloudSpeechAPI(service_config))
+        service = None
+
+        if config['type'] == 'pocketsphinx':
+            service = MyPocketSphinx(config)
+        elif config['type'] == 'google':
+            service = GoogleCloudSpeechAPI(config)
+
+        return service
 
     def command_handler(self):
         # TODO: Use confidence.
