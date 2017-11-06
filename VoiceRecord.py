@@ -112,7 +112,7 @@ class VoiceRecord:
             recording_limit_passed = recorded_chunks > recording_stop_len
 
             # If it's not some random peak, don't start recording.
-            if threshold_pass_num > 1 and not recording_limit_passed:
+            if threshold_pass_num > 0 and not recording_limit_passed:
                 if not started:
                     self.log("Starting recording of a phrase")
                     started = True
