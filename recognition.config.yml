@@ -24,8 +24,9 @@ services:
   -
     service_name: google
     language_code: ru-RU
+    # Not implemented yet.
     known_alternatives: ''
-    filter_unknown: true
+    filter_unknown: false
 
 handler_behaviour:
   confidence_threshold: 0.2
