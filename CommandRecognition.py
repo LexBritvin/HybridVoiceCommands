@@ -137,9 +137,9 @@ class CommandRecognition(Process):
 
         cloud_alternatives = []
         # Send to cloud if confidence is low.
-        if max_local_confidence < confidence_threshold:
-            for cloud_service in self.cloud_services:
-                cloud_alternatives += cloud_service.transcribe(content)
+        # if max_local_confidence < confidence_threshold:
+        #     for cloud_service in self.cloud_services:
+        #         cloud_alternatives += cloud_service.transcribe(content)
 
         # Merge all results.
         self.last_result = cloud_alternatives + local_alternatives

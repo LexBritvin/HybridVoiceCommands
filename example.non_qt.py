@@ -1,5 +1,6 @@
-from CommandRecognition import CommandRecognition
+#!/usr/bin/python
 
+from CommandRecognition import CommandRecognition
 
 class CommandHandler:
     def __init__(self, transport):
@@ -18,10 +19,11 @@ class CommandHandler:
     def print_alternatives(self, alternatives):
         print("Handler alternatives: ")
         for alternative in alternatives:
-            print(alternative['transcript'], ': ', alternative['confidence'])
+            print(alternative['transcript'].decode('utf-8'), u': ', str(alternative['confidence']).decode('utf-8'))
 
 
 def main():
+
     # Init recognition service.
     recognition = CommandRecognition()
     handler_transport = recognition.get_external_transport()

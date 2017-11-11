@@ -1,12 +1,12 @@
 hotword_detector:
   service_name: snowboy
   model: 'resources/snowboy/jarvis.pmdl'
-  sensitivity: 0.6
+  sensitivity: 0.5
 
 recorder:
   vad: wavelet
   bg_noise_samples: 20
-  sensitivity: 0.8
+  sensitivity: 1.0
   verbose: true
 
 services:
@@ -17,8 +17,8 @@ services:
     buffer_size: 1024
     decoder:
       '-hmm': 'resources/pocketsphinx/model/ru-ru/cmu_ru-ru'
-      '-lm': 'resources/pocketsphinx/model/ru-ru/robot.lm.bin'
-      '-dict': 'resources/pocketsphinx/model/ru-ru/robot.dic'
+      '-lm': 'resources/pocketsphinx/model/ru-ru/robot2.lm.bin'
+      '-dict': 'resources/pocketsphinx/model/ru-ru/robot2.dic'
     local: true
 
   -
