@@ -180,7 +180,7 @@ class CommandRecognition(Process):
             self.set_config(config)
 
     def set_config(self, config):
-        assert type(config['hotword_detector']['service_name']) == 'snowboy'
+        assert config['hotword_detector']['service_name'] == 'snowboy'
         assert type(config['hotword_detector']['model']) is str
         assert type(config['hotword_detector']['sensitivity']) is float \
             or type(config['hotword_detector']['sensitivity']) is int

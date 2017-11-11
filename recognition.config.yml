@@ -1,6 +1,6 @@
 hotword_detector:
   service_name: snowboy
-  model: 'resources/snowboy/snowboy.umdl'
+  model: 'resources/snowboy/jarvis.pmdl'
   sensitivity: 0.6
 
 recorder:
