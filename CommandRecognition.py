@@ -1,8 +1,6 @@
 import multiprocessing
 from multiprocessing import Process, Pipe
 
-import SimpleVAD
-import WaveletVAD
 from GoogleCloudSpeechAPI import GoogleCloudSpeechAPI
 from MyPocketSphinx import MyPocketSphinx
 from VoiceRecord import VoiceRecord
@@ -56,21 +54,21 @@ class CommandRecognition(Process):
         self.terminate()
 
     def start_recognize_loop(self):
-        model = self.config['hotword_detector']['model']
-
         print('Initializing...')
-        # TODO: Use config.
-        self.detector = snowboydecoder.HotwordDetector(model, sensitivity=0.6)
 
-        # TODO: Use config.
-        self.voice_record = VoiceRecord(threshold=0,
-                                        audio_stream_config=self.get_stream_config())
-        # self.voice_record.vad = SimpleVAD.SimpleVAD()
-        self.voice_record.vad = WaveletVAD.WaveletVAD()
-        self.voice_record.threshold = self.voice_record.measure_background_noise(num_samples=20)
+        # Configure Hotword detection.
+        model = self.config['hotword_detector']['model']
+        sensitivity = self.config['hotword_detector']['sensitivity']
+        self.detector = snowboydecoder.HotwordDetector(model, sensitivity=sensitivity)
+
+        # Configure voice recorder
+        self.config['recorder']['audio'] = self.get_stream_config()
+        self.voice_record = VoiceRecord(self.config['recorder'])
+        if 'bg_noise_samples' in self.config['recorder']:
+            self.voice_record.threshold = self.voice_record.measure_background_noise(num_samples=self.config['recorder']['bg_noise_samples'])
 
         # Store audio config for services.
-        self.config['audio'] = self.get_stream_config()
+        self.config['audio'] = self.config['recorder']['audio']
         self.config['audio']['encoding'] = self.voice_record.ENCODING
 
         self.create_services()
@@ -108,19 +106,16 @@ class CommandRecognition(Process):
 
     @staticmethod
     def init_service(config):
-        # TODO: Generalize creation.
         service = None
-
-        if config['type'] == 'pocketsphinx':
+        if config['service_name'] == 'pocketsphinx':
             service = MyPocketSphinx(config)
-        elif config['type'] == 'google':
+        elif config['service_name'] == 'google':
             service = GoogleCloudSpeechAPI(config)
 
         return service
 
     def command_handler(self):
-        # TODO: Use confidence.
-        confidence_threshold = 0.2
+        confidence_threshold = self.config['handler_behaviour']['confidence_threshold']
 
         # Listen audio data.
         speech_data = self.voice_record.get_speech_data(num_phrases=1)
@@ -135,14 +130,20 @@ class CommandRecognition(Process):
         for local_service in self.local_services:
             local_alternatives += local_service.transcribe(content)
 
-        # TODO: Send list of desired commands.
-        cloud_alternatives = []
-        for cloud_service in self.cloud_services:
-            cloud_alternatives += cloud_service.transcribe(content)
-        # TODO: Filter alternatives we don't know.
-        self.last_result = cloud_alternatives + local_alternatives
+        max_local_confidence = 0
+        for alt in local_alternatives:
+            if alt['confidence'] > max_local_confidence:
+                max_local_confidence = alt['confidence']
 
-        print("Recognition alternatives")
+        cloud_alternatives = []
+        # Send to cloud if confidence is low.
+        if max_local_confidence < confidence_threshold:
+            for cloud_service in self.cloud_services:
+                cloud_alternatives += cloud_service.transcribe(content)
+
+        # Merge all results.
+        self.last_result = cloud_alternatives + local_alternatives
+        self.last_result = sorted(self.last_result, key=lambda k: k['confidence'], reverse=True)
 
         # Notify the subscribers.
         self.notify_result(self.last_result)
@@ -179,5 +180,9 @@ class CommandRecognition(Process):
             self.set_config(config)
 
     def set_config(self, config):
+        assert type(config['hotword_detector']['service_name']) == 'snowboy'
         assert type(config['hotword_detector']['model']) is str
+        assert type(config['hotword_detector']['sensitivity']) is float \
+            or type(config['hotword_detector']['sensitivity']) is int
+        assert type(config['handler_behaviour']['confidence_threshold']) is float
         self.config = config

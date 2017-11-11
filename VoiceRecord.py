@@ -1,6 +1,8 @@
 import pyaudio
 from collections import deque
 import numpy
+import SimpleVAD
+import WaveletVAD
 
 
 class VoiceRecord:
@@ -22,17 +24,43 @@ class VoiceRecord:
     # of the phrase.
     PREV_AUDIO = 0.5
 
-    def __init__(self, threshold, audio_stream_config):
+    def __init__(self, config):
+        self._validate_config(config)
         self.audio = pyaudio.PyAudio()
-        self.threshold = threshold if threshold else 0
+        self.vad = self.init_vad(config['vad'])
+        self.threshold = config['threshold']
+        self.verbose = config['verbose']
+        self.sensitivity = config['sensitivity']
+
         self.stream_in = None
-        self.vad = None
-        self.verbose = True
         # Set format configs for PyAudio audio stream.
-        self._audio_format = audio_stream_config['format']
-        self._channels = audio_stream_config['channels']
-        self._rate = audio_stream_config['rate']
-        self._chunk = audio_stream_config['frames_per_buffer']  # CHUNKS of bytes to read each time from mic
+        self._audio_format = config['audio']['format']
+        self._channels = config['audio']['channels']
+        self._rate = config['audio']['rate']
+        self._chunk = config['audio']['frames_per_buffer']  # CHUNKS of bytes to read each time from mic
+
+    @staticmethod
+    def _validate_config(config):
+        assert 'audio' in config \
+               and 'format' in config['audio'] \
+               and 'channels' in config['audio'] \
+               and 'rate' in config['audio'] \
+               and 'frames_per_buffer' in config['audio']
+
+        config['threshold'] = float(config['threshold']) if 'threshold' in config else 0
+        config['verbose'] = bool(config['verbose']) if 'verbose' in config else False
+        config['vad'] = config['vad'] if 'vad' in config else 'default'
+        config['bg_noise_samples'] = int(config['bg_noise_samples']) if 'bg_noise_samples' in config else 20
+        config['sensitivity'] = float(config['sensitivity']) if 'sensitivity' in config else 1.0
+
+    def init_vad(self, vad_type):
+        vad = None
+        if vad_type == 'default':
+            vad = SimpleVAD.SimpleVAD()
+        elif vad_type == 'wavelet':
+            vad = WaveletVAD.WaveletVAD()
+
+        return vad
 
     def stream_open(self):
         """
@@ -104,8 +132,8 @@ class VoiceRecord:
             # Current chunk of audio data.
             cur_data = stream.read(self._chunk)
             recorded_chunks += 1
-            # TODO: Fix VAD estimation. It starts without voice.
-            slid_win.append(self.get_vad_estimate(cur_data))
+            estimate = self.get_vad_estimate(cur_data) * self.sensitivity
+            slid_win.append(estimate)
             threshold_pass_num = sum([x >= threshold for x in slid_win])
 
             # Check if we are over the allowed limit.

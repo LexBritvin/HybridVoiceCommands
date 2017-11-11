@@ -18,6 +18,7 @@ class GoogleCloudSpeechAPI:
 
     def __init__(self, config):
         self._validate_config(config)
+        self.config = config
         self.encoding = config['audio']['encoding']
         self.sample_rate = config['audio']['rate']
         self.language_code = config['language_code']
@@ -25,6 +26,8 @@ class GoogleCloudSpeechAPI:
     @staticmethod
     def _validate_config(config):
         config['language_code'] = config['language_code'] if 'language_code' in config else LANGUAGE_CODE
+        config['known_alternatives'] = config['known_alternatives'] if 'known_alternatives' in config else []
+        config['filter_unknown'] = config['filter_unknown'] if 'filter_unknown' in config else False
 
     def make_channel(self, host, port):
         """Creates a secure channel with auth credentials from the environment."""
@@ -39,6 +42,8 @@ class GoogleCloudSpeechAPI:
             credentials, http_request, target)
 
     def transcribe(self, content):
+        # TODO: Filter alternatives we don't know.
+        # TODO: Send list of desired commands.
         return self.request_transcribe_sync(content)
 
     def request_transcribe_sync(self, content):
@@ -72,7 +77,9 @@ class GoogleCloudSpeechAPI:
         for result in response.results:
             for alternative in result.alternatives:
                 alternatives.append({
+                    'service_name': self.config['service_name'],
                     'confidence': alternative.confidence,
                     'transcript': alternative.transcript
                 })
-        return sorted(alternatives, key=lambda k: k['confidence'], reverse=True)
+
+        return alternatives

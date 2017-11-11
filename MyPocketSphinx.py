@@ -60,11 +60,12 @@ class MyPocketSphinx:
         # Collect alternatives and confidence scores.
         hypothesis = self.decoder.hyp()
         alternatives = [{
+            'service_name': self.config['service_name'],
             'confidence': self.get_confidence(hypothesis),
             'transcript': hypothesis.hypstr
         }]
 
-        return sorted(alternatives, key=lambda k: k['confidence'], reverse=True)
+        return alternatives
 
     def get_confidence(self, hypothesis):
         if self.confidence_strategy == 'default':

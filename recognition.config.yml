@@ -1,14 +1,17 @@
 hotword_detector:
+  service_name: snowboy
   model: 'resources/snowboy/snowboy.umdl'
   sensitivity: 0.6
 
 recorder:
   vad: wavelet
   bg_noise_samples: 20
+  sensitivity: 0.8
+  verbose: true
 
 services:
   -
-    type: pocketsphinx
+    service_name: pocketsphinx
     confidence_strategy: default
     verbose: false
     buffer_size: 1024
@@ -19,5 +22,10 @@ services:
     local: true
 
   -
-    type: google
+    service_name: google
     language_code: ru-RU
+    known_alternatives: ''
+    filter_unknown: true
+
+handler_behaviour:
+  confidence_threshold: 0.2
